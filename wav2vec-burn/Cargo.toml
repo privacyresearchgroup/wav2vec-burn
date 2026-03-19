@@ -1,0 +1,22 @@
+[package]
+name = "wav2vec-burn"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+burn = "0.20.0"
+itertools = "0.14.0"
+log = "0.4"
+safetensors = "0.3"
+thiserror = "2.0.18"
+
+[dev-dependencies]
+anyhow = { version = "1.0.102", features = ["backtrace"] }
+flate2 = "1"
+tar = "0.4"
+tempfile = "3"
+reqwest = { version = "0.12", features = ["blocking"] }
+wav2vec-burn-test = { path = "../wav2vec-burn-test" }
+
+[lints]
+workspace = true

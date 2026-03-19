@@ -1,0 +1,91 @@
+use std::fmt::Debug;
+
+use burn::module::ModuleDisplay;
+use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
+use burn::prelude::*;
+use safetensors::{SafeTensorError, SafeTensors};
+
+use crate::config::ConstConfig;
+use crate::feature_encoder::FeatureEncoder;
+use crate::safetensors::{load_layer_norm, load_linear};
+use crate::transformer::Transformer;
+
+#[derive(Clone, Debug, Module)]
+pub struct Model<C: ConstConfig> {
+    feature_encoding: FeatureEncoder<C>,
+    feature_normalization: LayerNorm<C::Backend>,
+    feature_projection: C::FeatureProjectionMode,
+    transformation: Transformer<C>,
+    language_modeling_projection: Linear<C::Backend>,
+}
+
+pub trait ProjectFeatures<B: Backend>: Clone + Debug + ModuleDisplay + Send {
+    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, output_len: usize, device: &B::Device) -> Result<Self, CreateError>;
+    fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3>;
+}
+
+#[derive(Debug, Module)]
+pub struct FeatureProjection<B: Backend> {
+    projection: Linear<B>,
+}
+
+#[derive(Clone, Copy, Debug, Module)]
+pub struct NoFeatureProjection;
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateError {
+    #[error(transparent)]
+    Tensor(#[from] SafeTensorError),
+}
+
+impl<C: ConstConfig> Model<C> {
+    pub fn new(tensors: &SafeTensors<'_>, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
+        Ok(Self {
+            feature_encoding: FeatureEncoder::new(tensors, "wav2vec2.feature_extractor.conv_layers", device)?,
+            feature_normalization: load_layer_norm(
+                tensors,
+                "wav2vec2.feature_projection.layer_norm",
+                &LayerNormConfig::new(C::FEATURES_LEN),
+                device,
+            )?,
+            feature_projection: C::FeatureProjectionMode::new(
+                tensors,
+                "wav2vec2.feature_projection.projection",
+                C::FEATURES_LEN,
+                C::POS_EMBEDDING_LEN,
+                device,
+            )?,
+            transformation: Transformer::new(tensors, "wav2vec2.encoder", device)?,
+            language_modeling_projection: load_linear(tensors, "lm_head", &LinearConfig::new(C::POS_EMBEDDING_LEN, C::OUT_LEN), device)?,
+        })
+    }
+
+    pub fn forward(&self, input: Tensor<C::Backend, 3>) -> Tensor<C::Backend, 3> {
+        let features = self.feature_encoding.forward(input).swap_dims(1, 2);
+        let normalized_features = self.feature_normalization.forward(features);
+        let projected_features = self.feature_projection.forward(normalized_features);
+        let transformed = self.transformation.forward(projected_features);
+        let language_modelled = self.language_modeling_projection.forward(transformed);
+        language_modelled
+    }
+}
+
+impl<B: Backend> ProjectFeatures<B> for FeatureProjection<B> {
+    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, output_len: usize, device: &B::Device) -> Result<Self, CreateError> {
+        Ok(Self { projection: load_linear(tensors, prefix, &LinearConfig::new(input_len, output_len), device)? })
+    }
+
+    fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
+        self.projection.forward(input)
+    }
+}
+
+impl<B: Backend> ProjectFeatures<B> for NoFeatureProjection {
+    fn new(_: &SafeTensors<'_>, _: &str, _: usize, _: usize, _: &B::Device) -> Result<Self, CreateError> {
+        Ok(Self)
+    }
+
+    fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
+        input
+    }
+}
