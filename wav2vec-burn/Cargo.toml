@@ -1,21 +1,33 @@
 [package]
 name = "wav2vec-burn"
-version = "0.1.0"
-edition = "2024"
+description = "An implementation of Meta's wav2vec 2.0 speech transcription using the Burn ML Framework."
+version.workspace = true
+edition.workspace = true
+
+rust-version.workspace = true
+
+repository.workspace = true
+license.workspace = true
+
+categories = ["multimedia::audio"]
+keywords = ["speech", "transcription", "audio"]
+
+readme = "../README.md"
+exclude.workspace = true
 
 [dependencies]
-burn = "0.20.0"
-itertools = "0.14.0"
-log = "0.4"
-safetensors = "0.3"
-thiserror = "2.0.18"
+burn = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+safetensors = { workspace = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
-anyhow = { version = "1.0.102", features = ["backtrace"] }
-flate2 = "1"
-tar = "0.4"
-tempfile = "3"
-reqwest = { version = "0.12", features = ["blocking"] }
+anyhow = { workspace = true }
+flate2 = { workspace = true }
+tar = { workspace = true }
+tempfile = { workspace = true }
+reqwest = { workspace = true }
 wav2vec-burn-test = { path = "../wav2vec-burn-test" }
 
 [lints]

@@ -9,9 +9,8 @@ use burn::prelude::*;
 use burn::tensor::TensorData;
 use clap::Parser;
 use log::LevelFilter;
-use wav2vec_burn::Model;
 use wav2vec_burn::config::{ConstConfig, Wav2Vec2Base, Wav2Vec2Large};
-use wav2vec_burn::decoder::CTCDecoder;
+use wav2vec_burn::{CTCDecoder, Model};
 use wav2vec_burn_cli::loader;
 
 use crate::audio::TARGET_SAMPLE_RATE;

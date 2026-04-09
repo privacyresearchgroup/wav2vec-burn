@@ -8,7 +8,7 @@ use burn::prelude::*;
 use safetensors::SafeTensors;
 
 use crate::config::ConstConfig;
-use crate::model::CreateError;
+use crate::error::CreateError;
 use crate::safetensors::{load_conv1d, load_group_norm, load_layer_norm};
 
 #[derive(Clone, Debug, Module)]

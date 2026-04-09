@@ -2,9 +2,36 @@
 resolver = "3"
 members = ["cli", "wav2vec-burn", "wav2vec-burn-test"]
 
-[workspace.lints.rust]
-missing_docs = "allow" # TODO enable after documenting public API
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
 
+rust-version = "1.94.0"
+
+repository = "https://github.com/privacyresearchgroup/wav2vec-burn"
+license = "MIT"
+
+exclude = ["/.github", ".*"]
+
+[workspace.dependencies]
+anyhow = { version = "1.0.102", features = ["backtrace"] }
+burn = "0.20.0"
+clap = { version = "4", features = ["derive"] }
+claxon = "0.4"
+dirs = "6"
+env_logger = "0.11"
+flate2 = "1"
+hound = "3"
+itertools = "0.14.0"
+log = "0.4"
+rubato = "0.15"
+safetensors = "0.3"
+tar = "0.4"
+tempfile = "3"
+thiserror = "2.0.18"
+reqwest = { version = "0.12", features = ["blocking"] }
+
+[workspace.lints.rust]
 bare_trait_objects = "warn"
 elided_lifetimes_in_paths = "warn"
 trivial_numeric_casts = "warn"
@@ -85,9 +112,7 @@ match_wildcard_for_single_variants = "warn"
 maybe_infinite_iter = "warn"
 min_ident_chars = "warn"
 mismatching_type_param_order = "warn"
-missing_errors_doc = "allow" # TODO enable after documenting public API
 missing_fields_in_debug = "warn"
-missing_panics_doc = "allow" # TODO enable after documenting public API
 mod_module_files = "warn"
 must_use_candidate = "warn"
 mut_mut = "warn"

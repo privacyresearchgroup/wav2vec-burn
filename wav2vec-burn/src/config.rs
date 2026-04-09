@@ -1,3 +1,5 @@
+//! Types used to specify the configuration of a `wav2vec 2.0` [`Model`](crate::Model).
+
 use std::convert::Infallible;
 use std::fmt::Debug;
 use std::marker::PhantomData;
@@ -6,7 +8,9 @@ use burn::prelude::*;
 
 use crate::{feature_encoder, model, transformer};
 
+/// Compile-time configuration for [`Model`](crate::Model).
 pub trait ConstConfig: Clone + Copy + Debug {
+    /// The `burn` `Backend` to use.
     type Backend: Backend;
 
     /// The normalization mode used in the feature encoder.
@@ -42,8 +46,10 @@ pub trait ConstConfig: Clone + Copy + Debug {
     const OUT_LEN: usize = 768;
 }
 
+/// Compile-time configuration for [`Model`](crate::Model), for the `wav2vec2-base` model.
 #[derive(Clone, Debug)]
 pub enum Wav2Vec2Base<B: Backend> {
+    #[doc(hidden)]
     _Phantom(Infallible, PhantomData<B>),
 }
 
@@ -58,8 +64,10 @@ impl<B: Backend> ConstConfig for Wav2Vec2Base<B> {
     const OUT_LEN: usize = 32;
 }
 
+/// Compile-time configuration for [`Model`](crate::Model), for the `wav2vec2-large` model.
 #[derive(Clone, Debug)]
 pub enum Wav2Vec2Large<B: Backend> {
+    #[doc(hidden)]
     _Phantom(Infallible, PhantomData<B>),
 }
 

@@ -3,13 +3,20 @@ use std::fmt::Debug;
 use burn::module::ModuleDisplay;
 use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::prelude::*;
-use safetensors::{SafeTensorError, SafeTensors};
+use safetensors::SafeTensors;
 
 use crate::config::ConstConfig;
+use crate::error::CreateError;
 use crate::feature_encoder::FeatureEncoder;
 use crate::safetensors::{load_layer_norm, load_linear};
 use crate::transformer::Transformer;
 
+/// Implementation of `wav2vec 2.0` for the `burn` ML Framework.
+///
+/// The variant of `wav2vec 2.0` model is selected at compile-time using the generic parameter `C`. Currently supported variants are:
+///
+/// * [`wav2vec2-base`](crate::config::Wav2Vec2Base)
+/// * [`wav2vec2-large`](crate::config::Wav2Vec2Large)
 #[derive(Clone, Debug, Module)]
 pub struct Model<C: ConstConfig> {
     feature_encoding: FeatureEncoder<C>,
@@ -29,16 +36,14 @@ pub struct FeatureProjection<B: Backend> {
     projection: Linear<B>,
 }
 
-#[derive(Clone, Copy, Debug, Module)]
-pub struct NoFeatureProjection;
-
-#[derive(Debug, thiserror::Error)]
-pub enum CreateError {
-    #[error(transparent)]
-    Tensor(#[from] SafeTensorError),
-}
-
 impl<C: ConstConfig> Model<C> {
+    /// Creates a new `Model`.
+    ///
+    /// The given `tensors` should correspond to the `wav2vec 2.0` model type described by the generic parameter `C`.
+    ///
+    /// # Errors
+    ///
+    /// If an error occurs accessing model values from `tensors`, then an error is returned.
     pub fn new(tensors: &SafeTensors<'_>, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
         Ok(Self {
             feature_encoding: FeatureEncoder::new(tensors, "wav2vec2.feature_extractor.conv_layers", device)?,
@@ -60,6 +65,9 @@ impl<C: ConstConfig> Model<C> {
         })
     }
 
+    /// Runs model inference on the given `input`.
+    ///
+    /// The output returned should be fed into [`CTCDecoder`](crate::CTCDecoder) to produce a transcription.
     pub fn forward(&self, input: Tensor<C::Backend, 3>) -> Tensor<C::Backend, 3> {
         let features = self.feature_encoding.forward(input).swap_dims(1, 2);
         let normalized_features = self.feature_normalization.forward(features);
@@ -77,15 +85,5 @@ impl<B: Backend> ProjectFeatures<B> for FeatureProjection<B> {
 
     fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
         self.projection.forward(input)
-    }
-}
-
-impl<B: Backend> ProjectFeatures<B> for NoFeatureProjection {
-    fn new(_: &SafeTensors<'_>, _: &str, _: usize, _: usize, _: &B::Device) -> Result<Self, CreateError> {
-        Ok(Self)
-    }
-
-    fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
-        input
     }
 }

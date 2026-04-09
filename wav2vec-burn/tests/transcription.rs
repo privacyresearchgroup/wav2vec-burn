@@ -2,7 +2,7 @@ use anyhow::Context as _;
 use burn::prelude::*;
 use burn::tensor::TensorData;
 use wav2vec_burn::config::Wav2Vec2Base;
-use wav2vec_burn::{Model, decoder};
+use wav2vec_burn::{CTCDecoder, Model};
 use wav2vec_burn_test::{TestBackend, TestDevice, audio, loader};
 
 #[test]
@@ -22,7 +22,7 @@ fn test_transcribe_silence() -> anyhow::Result<()> {
     let data = TensorData::new(samples, [1, 1, samples_len]);
     let input = Tensor::from_data(data, &device);
     let logits = model.forward(input);
-    let text = decoder::decode_logits(logits, 5).unwrap();
+    let text = CTCDecoder::decode_logits(logits, 5).unwrap();
 
     assert_ne!(text.len(), 0);
 

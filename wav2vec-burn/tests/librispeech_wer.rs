@@ -8,7 +8,7 @@ use anyhow::Context as _;
 use burn::prelude::*;
 use burn::tensor::TensorData;
 use wav2vec_burn::config::Wav2Vec2Base;
-use wav2vec_burn::{Model, decoder};
+use wav2vec_burn::{CTCDecoder, Model};
 use wav2vec_burn_test::evaluation::word_error_rate;
 use wav2vec_burn_test::{TestBackend, TestDevice, audio, loader};
 
@@ -69,7 +69,7 @@ fn test_librispeech_wer() -> anyhow::Result<()> {
         let start = Instant::now();
         let input = Tensor::from_data(TensorData::new(samples, [1, 1, samples_len]), &device);
         let logits = model.forward(input);
-        let transcription = decoder::decode_logits(logits, 50)?;
+        let transcription = CTCDecoder::decode_logits(logits, 50)?;
         let elapsed = start.elapsed().as_millis() as f32 / 1000.0;
         eprintln!("[{utterance_id}] inference complete in {elapsed:0.1}s:");
         eprintln!("  reference:     \"{reference}\"");

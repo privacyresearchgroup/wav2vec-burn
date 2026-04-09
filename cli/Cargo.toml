@@ -1,20 +1,22 @@
 [package]
 name = "wav2vec-burn-cli"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+
+publish = false
 
 [dependencies]
-anyhow = { version = "1.0.102", features = ["backtrace"] }
-burn = { version = "0.20.0", features = ["ndarray"] }
-clap = { version = "4", features = ["derive"] }
-claxon = "0.4"
-dirs = "6"
-env_logger = "0.11"
-hound = "3"
-log = "0.4"
-reqwest = { version = "0.12", features = ["blocking"] }
-rubato = "0.15"
-safetensors = "0.3"
+anyhow = { workspace = true }
+burn = { workspace = true, features = ["ndarray"] }
+clap = { workspace = true }
+claxon = { workspace = true }
+dirs = { workspace = true }
+env_logger = { workspace = true }
+hound = { workspace = true }
+log = { workspace = true }
+reqwest = { workspace = true }
+rubato = { workspace = true }
+safetensors = { workspace = true }
 wav2vec-burn = { path = "../wav2vec-burn" }
 
 [lints]

@@ -1,11 +1,13 @@
 [package]
 name = "wav2vec-burn-test"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+
+publish = false
 
 [dependencies]
-burn = { version = "0.20.0", features = ["ndarray"] }
-itertools = "0.14.0"
+burn = { workspace = true, features = ["ndarray"] }
+itertools = { workspace = true }
 wav2vec-burn-cli = { path = "../cli" }
 
 [lints]

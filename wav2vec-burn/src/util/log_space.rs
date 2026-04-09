@@ -16,8 +16,8 @@ impl LogSpaceF32 {
     }
 
     #[must_use]
-    pub fn is_zero(&self) -> bool {
-        *self == Self::ZERO
+    pub fn is_zero(self) -> bool {
+        self == Self::ZERO
     }
 }
 

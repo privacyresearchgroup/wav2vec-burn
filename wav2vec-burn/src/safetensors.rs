@@ -7,7 +7,7 @@ use burn::nn::{
 use burn::prelude::*;
 use safetensors::{Dtype, SafeTensorError, SafeTensors};
 
-use crate::model::CreateError;
+use crate::error::CreateError;
 
 pub fn load_conv1d<B: Backend>(
     tensors: &SafeTensors<'_>,
