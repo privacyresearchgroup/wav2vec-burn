@@ -3,11 +3,14 @@ use burn::prelude::*;
 use burn::tensor::TensorData;
 use wav2vec_burn::config::Wav2Vec2Base;
 use wav2vec_burn::{CTCDecoder, Model};
-use wav2vec_burn_test::{TestBackend, TestDevice, audio, loader};
+use wav2vec_burn_test::{TestBackend, TestDevice, audio, loader, run_test};
 
 #[test]
 #[ignore = "An ndarray backend bug is crashing"]
 fn test_transcribe_silence() -> anyhow::Result<()> {
+    run_test(transcribe_silence)
+}
+fn transcribe_silence() -> anyhow::Result<()> {
     let dir = tempfile::tempdir().context("tempdir")?;
     let wav_path = dir.path().join("silence.wav");
     audio::write_silent_wav(&wav_path, 0.1, 16_000)?;
