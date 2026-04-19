@@ -20,7 +20,7 @@ impl<B: Backend> PathConfig for Wav2Vec2Base<B> {
 }
 
 impl<B: Backend> PathConfig for Wav2Vec2Large<B> {
-    const MODEL_URL: &str = "https://huggingface.co/facebook/wav2vec2-large-960h/resolve/main/model.safetensors";
+    const MODEL_URL: &str = "https://huggingface.co/facebook/wav2vec2-large-960h/resolve/refs%2Fpr%2F6/model.safetensors";
     const MODEL_NAME: &str = "wav2vec2-large-960h";
     const MODEL_FILENAME: &str = "wav2vec2-large-960h.safetensors";
 }
