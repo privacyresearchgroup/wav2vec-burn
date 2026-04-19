@@ -1,4 +1,5 @@
 pub mod evaluation;
+pub mod test_data;
 
 pub use wav2vec_burn_cli::{audio, loader};
 

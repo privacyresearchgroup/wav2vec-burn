@@ -6,6 +6,7 @@ edition.workspace = true
 publish = false
 
 [dependencies]
+anyhow = { workspace = true }
 burn = { workspace = true, features = ["ndarray"] }
 env_logger = { workspace = true }
 log = { workspace = true }
