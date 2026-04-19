@@ -122,11 +122,13 @@ fn stream_extract_chapter(cache_dir: &Path) -> anyhow::Result<()> {
                 let mut data = Vec::new();
                 entry.read_to_end(&mut data)?;
                 fs::write(&dest, &data)?;
-                log::info!("  extracted {} ({} bytes)", filename, data.len());
+                log::info!("  extracted {filename} ({} bytes)", data.len());
                 extracted += 1;
             }
-        } else {
+        } else if extracted != 0 {
             break;
+        } else {
+            log::info!("  skipping {raw_path}");
         }
     }
 
