@@ -10,7 +10,7 @@ use burn::tensor::TensorData;
 use wav2vec_burn::config::Wav2Vec2Base;
 use wav2vec_burn::{CTCDecoder, Model};
 use wav2vec_burn_test::evaluation::word_error_rate;
-use wav2vec_burn_test::{TestBackend, TestDevice, audio, loader};
+use wav2vec_burn_test::{TestBackend, TestDevice, audio, init_logger, loader};
 
 const LIBRISPEECH_TEST_CLEAN_URL: &str = "https://www.openslr.org/resources/12/test-clean.tar.gz";
 const FIRST_SPEAKER: &str = "1089";

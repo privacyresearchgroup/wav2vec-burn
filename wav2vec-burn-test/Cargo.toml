@@ -7,6 +7,8 @@ publish = false
 
 [dependencies]
 burn = { workspace = true, features = ["ndarray"] }
+env_logger = { workspace = true }
+log = { workspace = true }
 itertools = { workspace = true }
 wav2vec-burn-cli = { path = "../cli" }
 
