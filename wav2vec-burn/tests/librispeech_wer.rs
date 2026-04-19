@@ -20,11 +20,12 @@ const WER_THRESHOLD: f32 = 0.10;
 
 #[test]
 fn test_librispeech_wer() -> anyhow::Result<()> {
+    init_logger();
     let cache_dir = loader::default_cache_dir();
     let audio_dir = cache_dir.join("librispeech").join(FIRST_SPEAKER).join(FIRST_CHAPTER);
     let transcription_path = audio_dir.join(format!("{FIRST_SPEAKER}-{FIRST_CHAPTER}.trans.txt"));
     if !transcription_path.exists() {
-        eprintln!("downloading librispeech test-clean speaker {FIRST_SPEAKER} chapter {FIRST_CHAPTER}...");
+        log::info!("downloading librispeech test-clean speaker {FIRST_SPEAKER} chapter {FIRST_CHAPTER}...");
         stream_extract_chapter(&cache_dir).context("downloading librispeech")?;
     }
 
@@ -71,9 +72,9 @@ fn test_librispeech_wer() -> anyhow::Result<()> {
         let logits = model.forward(input);
         let transcription = CTCDecoder::decode_logits(logits, 50)?;
         let elapsed = start.elapsed().as_millis() as f32 / 1000.0;
-        eprintln!("[{utterance_id}] inference complete in {elapsed:0.1}s:");
-        eprintln!("  reference:     \"{reference}\"");
-        eprintln!("  transcription: \"{transcription}\"");
+        log::info!("[{utterance_id}] inference complete in {elapsed:0.1}s:");
+        log::info!("  reference:     \"{reference}\"");
+        log::info!("  transcription: \"{transcription}\"");
 
         pairs.push((reference, transcription));
     }
@@ -88,7 +89,7 @@ fn test_librispeech_wer() -> anyhow::Result<()> {
         pairs_len,
         selected_len_secs,
     );
-    eprintln!(
+    log::info!(
         "Total WER on {selected_len_secs:0.1}s of LibriSpeech test-clean: {:0.1}%",
         wer * 100.0
     );
@@ -106,7 +107,7 @@ fn stream_extract_chapter(cache_dir: &Path) -> anyhow::Result<()> {
     let gz = flate2::read::GzDecoder::new(BufReader::new(response));
     let mut archive = tar::Archive::new(gz);
 
-    eprintln!("Extracting {LIBRISPEECH_TEST_CLEAN_URL}");
+    log::info!("Extracting {LIBRISPEECH_TEST_CLEAN_URL}");
 
     let chapter_prefix = format!("LibriSpeech/test-clean/{FIRST_SPEAKER}/{FIRST_CHAPTER}/");
 
@@ -121,7 +122,7 @@ fn stream_extract_chapter(cache_dir: &Path) -> anyhow::Result<()> {
                 let mut data = Vec::new();
                 entry.read_to_end(&mut data)?;
                 fs::write(&dest, &data)?;
-                eprintln!("  extracted {} ({} bytes)", filename, data.len());
+                log::info!("  extracted {} ({} bytes)", filename, data.len());
                 extracted += 1;
             }
         } else {
@@ -129,7 +130,7 @@ fn stream_extract_chapter(cache_dir: &Path) -> anyhow::Result<()> {
         }
     }
 
-    eprintln!("Extracted {extracted} files to {}", audio_dir.display());
+    log::info!("Extracted {extracted} files to {}", audio_dir.display());
     if extracted == 0 {
         anyhow::bail!("No files extracted for the target chapter");
     }
