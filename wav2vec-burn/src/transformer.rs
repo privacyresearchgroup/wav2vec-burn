@@ -2,11 +2,10 @@ use burn::nn::conv::{Conv1d, Conv1dConfig};
 use burn::nn::{Gelu, LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::prelude::*;
 use burn::tensor::activation::softmax;
-use safetensors::SafeTensors;
 
 use crate::config::ConstConfig;
 use crate::error::CreateError;
-use crate::safetensors::{load_conv1d, load_layer_norm, load_linear};
+use crate::weights::Weights;
 
 #[derive(Clone, Debug, Module)]
 pub struct Transformer<C: ConstConfig> {
@@ -53,17 +52,12 @@ struct FeedForward<C: ConstConfig> {
 }
 
 impl<C: ConstConfig> Transformer<C> {
-    pub fn new(tensors: &SafeTensors<'_>, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
+    pub fn new(weights: &Weights, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
         Ok(Self {
-            positional_embedding: PositionalEmbedding::new(tensors, &format!("{prefix}.pos_conv_embed.conv"), device)?,
-            normalization: load_layer_norm(
-                tensors,
-                &format!("{prefix}.layer_norm"),
-                &LayerNormConfig::new(C::POS_EMBEDDING_LEN),
-                device,
-            )?,
+            positional_embedding: PositionalEmbedding::new(weights, &format!("{prefix}.pos_conv_embed.conv"), device)?,
+            normalization: weights.load_layer_norm(&format!("{prefix}.layer_norm"), &LayerNormConfig::new(C::POS_EMBEDDING_LEN), device)?,
             layers: (0..C::TRANSFORMER_LAYERS)
-                .map(|layer_idx| Layer::<C>::new(tensors, &format!("{prefix}.layers.{layer_idx}"), device))
+                .map(|layer_idx| Layer::<C>::new(weights, &format!("{prefix}.layers.{layer_idx}"), device))
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
@@ -92,10 +86,10 @@ impl<C: ConstConfig> Transformer<C> {
 }
 
 impl<C: ConstConfig> PositionalEmbedding<C> {
-    pub fn new(tensors: &SafeTensors<'_>, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
+    pub fn new(weights: &Weights, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
         let config =
             Conv1dConfig::new(C::POS_EMBEDDING_LEN, C::POS_EMBEDDING_LEN, C::POS_EMBEDDING_KERNEL).with_groups(C::POS_EMBEDDING_GROUPS);
-        Ok(PositionalEmbedding { convolution: load_conv1d(tensors, prefix, &config, device)?, activation: Gelu::new() })
+        Ok(PositionalEmbedding { convolution: weights.load_conv1d(prefix, &config, device)?, activation: Gelu::new() })
     }
 
     fn forward(&self, input: Tensor<C::Backend, 3>) -> Tensor<C::Backend, 3> {
@@ -110,18 +104,16 @@ impl<C: ConstConfig> PositionalEmbedding<C> {
 }
 
 impl<C: ConstConfig> Layer<C> {
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Layer<C>, CreateError> {
+    fn new(weights: &Weights, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Layer<C>, CreateError> {
         Ok(Layer {
-            attention: Attention::new(tensors, &format!("{prefix}.attention"), device)?,
-            attention_normalization: load_layer_norm(
-                tensors,
+            attention: Attention::new(weights, &format!("{prefix}.attention"), device)?,
+            attention_normalization: weights.load_layer_norm(
                 &format!("{prefix}.layer_norm"),
                 &LayerNormConfig::new(C::POS_EMBEDDING_LEN),
                 device,
             )?,
-            feed_forward: FeedForward::new(tensors, &format!("{prefix}.feed_forward"), device)?,
-            feed_forward_normalization: load_layer_norm(
-                tensors,
+            feed_forward: FeedForward::new(weights, &format!("{prefix}.feed_forward"), device)?,
+            feed_forward_normalization: weights.load_layer_norm(
                 &format!("{prefix}.final_layer_norm"),
                 &LayerNormConfig::new(C::POS_EMBEDDING_LEN),
                 device,
@@ -161,13 +153,13 @@ impl<C: ConstConfig> Layer<C> {
 }
 
 impl<C: ConstConfig> Attention<C> {
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Attention<C>, CreateError> {
+    fn new(weights: &Weights, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Attention<C>, CreateError> {
         let config = LinearConfig::new(C::POS_EMBEDDING_LEN, C::POS_EMBEDDING_LEN);
         Ok(Attention {
-            query_projection: load_linear(tensors, &format!("{prefix}.q_proj"), &config, device)?,
-            key_projection: load_linear(tensors, &format!("{prefix}.k_proj"), &config, device)?,
-            value_projection: load_linear(tensors, &format!("{prefix}.v_proj"), &config, device)?,
-            output_projection: load_linear(tensors, &format!("{prefix}.out_proj"), &config, device)?,
+            query_projection: weights.load_linear(&format!("{prefix}.q_proj"), &config, device)?,
+            key_projection: weights.load_linear(&format!("{prefix}.k_proj"), &config, device)?,
+            value_projection: weights.load_linear(&format!("{prefix}.v_proj"), &config, device)?,
+            output_projection: weights.load_linear(&format!("{prefix}.out_proj"), &config, device)?,
         })
     }
 
@@ -194,16 +186,14 @@ impl<C: ConstConfig> Attention<C> {
 }
 
 impl<C: ConstConfig> FeedForward<C> {
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<FeedForward<C>, CreateError> {
+    fn new(weights: &Weights, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<FeedForward<C>, CreateError> {
         Ok(Self {
-            intermediate_dense: load_linear(
-                tensors,
+            intermediate_dense: weights.load_linear(
                 &format!("{prefix}.intermediate_dense"),
                 &LinearConfig::new(C::POS_EMBEDDING_LEN, C::FEED_FORWARD_LEN),
                 device,
             )?,
-            output_dense: load_linear(
-                tensors,
+            output_dense: weights.load_linear(
                 &format!("{prefix}.output_dense"),
                 &LinearConfig::new(C::FEED_FORWARD_LEN, C::POS_EMBEDDING_LEN),
                 device,

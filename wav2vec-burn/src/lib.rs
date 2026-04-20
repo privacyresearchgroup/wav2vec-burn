@@ -8,11 +8,11 @@ mod feature_encoder;
 mod model;
 mod transformer;
 mod util;
-
-mod safetensors;
+mod weights;
 
 pub mod config;
 pub mod error;
 
 pub use self::decoder::CTCDecoder;
 pub use self::model::Model;
+pub use self::weights::Weights;

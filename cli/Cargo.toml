@@ -16,7 +16,6 @@ hound = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true }
 rubato = { workspace = true }
-safetensors = { workspace = true }
 wav2vec-burn = { path = "../wav2vec-burn" }
 
 [lints]

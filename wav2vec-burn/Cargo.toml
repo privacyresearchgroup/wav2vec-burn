@@ -17,6 +17,7 @@ exclude.workspace = true
 
 [dependencies]
 burn = { workspace = true }
+bytes = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
 safetensors = { workspace = true }

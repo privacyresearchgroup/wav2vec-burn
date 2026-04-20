@@ -5,11 +5,10 @@ use burn::module::ModuleDisplay;
 use burn::nn::conv::{Conv1d, Conv1dConfig};
 use burn::nn::{Gelu, GroupNorm, GroupNormConfig, LayerNorm, LayerNormConfig};
 use burn::prelude::*;
-use safetensors::SafeTensors;
 
 use crate::config::ConstConfig;
 use crate::error::CreateError;
-use crate::safetensors::{load_conv1d, load_group_norm, load_layer_norm};
+use crate::weights::Weights;
 
 #[derive(Clone, Debug, Module)]
 pub struct FeatureEncoder<C: ConstConfig> {
@@ -34,7 +33,7 @@ pub struct LayerConfig {
 pub trait Normalize<B: Backend>: Clone + Debug + ModuleDisplay + Send {
     type Rest: Normalize<B>;
 
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, device: &B::Device) -> Result<Self, CreateError>;
+    fn new(weights: &Weights, prefix: &str, input_len: usize, device: &B::Device) -> Result<Self, CreateError>;
     fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3>;
 }
 
@@ -67,18 +66,18 @@ pub const fn layer(output_len: usize, kernel_size: usize, stride: usize) -> Laye
 }
 
 impl<C: ConstConfig> FeatureEncoder<C> {
-    pub fn new(tensors: &SafeTensors<'_>, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
+    pub fn new(weights: &Weights, prefix: &str, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
         let [first_config, configs @ ..] = C::FEATURE_ENCODER_LAYERS else {
             unreachable!("empty feature encoder config")
         };
-        let first_layer = Layer::new(tensors, &format!("{prefix}.0"), first_config, 1, device)?;
+        let first_layer = Layer::new(weights, &format!("{prefix}.0"), first_config, 1, device)?;
         let mut input_len = first_config.output_len;
         let layers = configs
             .iter()
             .enumerate()
             .map(|(idx, config)| {
                 Layer::<C, _>::new(
-                    tensors,
+                    weights,
                     &format!("{prefix}.{}", 1 + idx),
                     config,
                     replace(&mut input_len, config.output_len),
@@ -98,22 +97,21 @@ impl<C: ConstConfig> FeatureEncoder<C> {
 
 impl<C: ConstConfig, N: Normalize<C::Backend>> Layer<C, N> {
     fn new(
-        tensors: &SafeTensors<'_>,
+        weights: &Weights,
         prefix: &str,
         config: &LayerConfig,
         input_len: usize,
         device: &<C::Backend as Backend>::Device,
     ) -> Result<Self, CreateError> {
         Ok(Self {
-            convolution: load_conv1d(
-                tensors,
+            convolution: weights.load_conv1d(
                 &format!("{prefix}.conv"),
                 &Conv1dConfig::new(input_len, config.output_len, config.kernel_size)
                     .with_stride(config.stride)
                     .with_bias(C::FEATURE_ENCODER_BIAS),
                 device,
             )?,
-            normalization: N::new(tensors, &format!("{prefix}.layer_norm"), config.output_len, device)?,
+            normalization: N::new(weights, &format!("{prefix}.layer_norm"), config.output_len, device)?,
             activation: Gelu::new(),
         })
     }
@@ -128,8 +126,8 @@ impl<C: ConstConfig, N: Normalize<C::Backend>> Layer<C, N> {
 impl<B: Backend> Normalize<B> for LayerNormalization<B> {
     type Rest = Self;
 
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, device: &B::Device) -> Result<Self, CreateError> {
-        Ok(Self { layer_norm: load_layer_norm(tensors, prefix, &LayerNormConfig::new(input_len), device)? })
+    fn new(weights: &Weights, prefix: &str, input_len: usize, device: &B::Device) -> Result<Self, CreateError> {
+        Ok(Self { layer_norm: weights.load_layer_norm(prefix, &LayerNormConfig::new(input_len), device)? })
     }
 
     fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
@@ -143,8 +141,8 @@ impl<B: Backend> Normalize<B> for LayerNormalization<B> {
 impl<B: Backend> Normalize<B> for GroupNormalization<B> {
     type Rest = NoNormalization;
 
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, device: &B::Device) -> Result<Self, CreateError> {
-        Ok(Self { group_norm: load_group_norm(tensors, prefix, &GroupNormConfig::new(input_len, input_len), device)? })
+    fn new(weights: &Weights, prefix: &str, input_len: usize, device: &B::Device) -> Result<Self, CreateError> {
+        Ok(Self { group_norm: weights.load_group_norm(prefix, &GroupNormConfig::new(input_len, input_len), device)? })
     }
 
     fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
@@ -155,7 +153,7 @@ impl<B: Backend> Normalize<B> for GroupNormalization<B> {
 impl<B: Backend> Normalize<B> for NoNormalization {
     type Rest = Self;
 
-    fn new(_: &SafeTensors<'_>, _: &str, _: usize, _: &<B as Backend>::Device) -> Result<Self, CreateError> {
+    fn new(_: &Weights, _: &str, _: usize, _: &<B as Backend>::Device) -> Result<Self, CreateError> {
         Ok(Self)
     }
 

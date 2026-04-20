@@ -3,9 +3,8 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 use burn::prelude::Backend;
-use safetensors::SafeTensors;
-use wav2vec_burn::Model;
 use wav2vec_burn::config::{ConstConfig, Wav2Vec2Base, Wav2Vec2Large};
+use wav2vec_burn::{Model, Weights};
 
 pub trait PathConfig {
     const MODEL_URL: &str;
@@ -41,11 +40,10 @@ pub fn load_model<C: ConstConfig + PathConfig>(
 
     log::info!("Parsing safetensors for {}...", C::MODEL_FILENAME);
     let bytes = fs::read(&cached_path)?;
-    let tensors = SafeTensors::deserialize(&bytes)?;
-    log::info!("{} tensors loaded", tensors.names().len());
+    let weights = Weights::from_safetensors(bytes.into())?;
 
     log::info!("Loading model...");
-    let model = Model::new(&tensors, device)?;
+    let model = Model::new(&weights, device)?;
 
     Ok(model)
 }

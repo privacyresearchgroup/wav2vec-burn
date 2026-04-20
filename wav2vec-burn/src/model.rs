@@ -3,13 +3,12 @@ use std::fmt::Debug;
 use burn::module::ModuleDisplay;
 use burn::nn::{LayerNorm, LayerNormConfig, Linear, LinearConfig};
 use burn::prelude::*;
-use safetensors::SafeTensors;
 
 use crate::config::ConstConfig;
 use crate::error::CreateError;
 use crate::feature_encoder::FeatureEncoder;
-use crate::safetensors::{load_layer_norm, load_linear};
 use crate::transformer::Transformer;
+use crate::weights::Weights;
 
 /// Implementation of `wav2vec 2.0` for the `burn` ML Framework.
 ///
@@ -27,7 +26,7 @@ pub struct Model<C: ConstConfig> {
 }
 
 pub trait ProjectFeatures<B: Backend>: Clone + Debug + ModuleDisplay + Send {
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, output_len: usize, device: &B::Device) -> Result<Self, CreateError>;
+    fn new(weights: &Weights, prefix: &str, input_len: usize, output_len: usize, device: &B::Device) -> Result<Self, CreateError>;
     fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3>;
 }
 
@@ -39,29 +38,28 @@ pub struct FeatureProjection<B: Backend> {
 impl<C: ConstConfig> Model<C> {
     /// Creates a new `Model`.
     ///
-    /// The given `tensors` should correspond to the `wav2vec 2.0` model type described by the generic parameter `C`.
+    /// The given `weights` should correspond to the `wav2vec 2.0` model type described by the generic parameter `C`.
     ///
     /// # Errors
     ///
     /// If an error occurs accessing model values from `tensors`, then an error is returned.
-    pub fn new(tensors: &SafeTensors<'_>, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
+    pub fn new(weights: &Weights, device: &<C::Backend as Backend>::Device) -> Result<Self, CreateError> {
         Ok(Self {
-            feature_encoding: FeatureEncoder::new(tensors, "wav2vec2.feature_extractor.conv_layers", device)?,
-            feature_normalization: load_layer_norm(
-                tensors,
+            feature_encoding: FeatureEncoder::new(weights, "wav2vec2.feature_extractor.conv_layers", device)?,
+            feature_normalization: weights.load_layer_norm(
                 "wav2vec2.feature_projection.layer_norm",
                 &LayerNormConfig::new(C::FEATURES_LEN),
                 device,
             )?,
             feature_projection: C::FeatureProjectionMode::new(
-                tensors,
+                weights,
                 "wav2vec2.feature_projection.projection",
                 C::FEATURES_LEN,
                 C::POS_EMBEDDING_LEN,
                 device,
             )?,
-            transformation: Transformer::new(tensors, "wav2vec2.encoder", device)?,
-            language_modeling_projection: load_linear(tensors, "lm_head", &LinearConfig::new(C::POS_EMBEDDING_LEN, C::OUT_LEN), device)?,
+            transformation: Transformer::new(weights, "wav2vec2.encoder", device)?,
+            language_modeling_projection: weights.load_linear("lm_head", &LinearConfig::new(C::POS_EMBEDDING_LEN, C::OUT_LEN), device)?,
         })
     }
 
@@ -79,8 +77,8 @@ impl<C: ConstConfig> Model<C> {
 }
 
 impl<B: Backend> ProjectFeatures<B> for FeatureProjection<B> {
-    fn new(tensors: &SafeTensors<'_>, prefix: &str, input_len: usize, output_len: usize, device: &B::Device) -> Result<Self, CreateError> {
-        Ok(Self { projection: load_linear(tensors, prefix, &LinearConfig::new(input_len, output_len), device)? })
+    fn new(weights: &Weights, prefix: &str, input_len: usize, output_len: usize, device: &B::Device) -> Result<Self, CreateError> {
+        Ok(Self { projection: weights.load_linear(prefix, &LinearConfig::new(input_len, output_len), device)? })
     }
 
     fn forward(&self, input: Tensor<B, 3>) -> Tensor<B, 3> {
