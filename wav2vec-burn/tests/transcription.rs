@@ -25,7 +25,7 @@ fn test_transcribe_silence() -> anyhow::Result<()> {
     let logits = model.forward(input);
     let text = CTCDecoder::decode_logits(logits, 5).unwrap();
 
-    assert_ne!(text.len(), 0);
+    assert_eq!(text, "");
 
     log::info!("Transcription of silence: {text:?}");
     Ok(())
