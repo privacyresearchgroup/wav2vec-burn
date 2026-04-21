@@ -16,7 +16,7 @@ exclude = ["/.github", ".*"]
 [workspace.dependencies]
 anyhow = { version = "1.0.102", features = ["backtrace"] }
 assert_float_eq = "1.2.0"
-burn = "0.20.0"
+burn = { version = "0.20.0", features = [], default-features = false }
 bytes = "1.11.1"
 clap = { version = "4", features = ["derive"] }
 claxon = "0.4"

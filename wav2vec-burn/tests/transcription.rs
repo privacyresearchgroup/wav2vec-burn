@@ -6,7 +6,6 @@ use wav2vec_burn::{CTCDecoder, Model};
 use wav2vec_burn_test::{TestBackend, TestDevice, audio, init_logger, loader};
 
 #[test]
-#[ignore = "An ndarray backend bug is crashing"]
 fn test_transcribe_silence() -> anyhow::Result<()> {
     init_logger();
     let dir = tempfile::tempdir().context("tempdir")?;
