@@ -85,3 +85,25 @@ impl<B: Backend> ProjectFeatures<B> for FeatureProjection<B> {
         self.projection.forward(input)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use burn::backend::NdArray;
+    use burn::backend::ndarray::NdArrayDevice;
+    use burn::prelude::*;
+
+    use crate::Weights;
+    use crate::config::Wav2Vec2Base;
+
+    use super::*;
+
+    #[test]
+    #[ignore = "An ndarray backend bug is crashing"]
+    fn base_forward_output_shape() {
+        let device = NdArrayDevice::default();
+        let model = Model::<Wav2Vec2Base<NdArray>>::new(&Weights::None, &device).unwrap();
+        let input = Tensor::zeros([1, 1, 400], &device);
+        let output = model.forward(input);
+        assert_eq!(output.dims(), [1, 3, 32]);
+    }
+}

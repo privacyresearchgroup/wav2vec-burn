@@ -126,34 +126,56 @@ impl CTCDecoder {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_blank_only() {
-        let timestep_log_probs = (0..5).map(|_| {
-            let mut logits = [f32::NEG_INFINITY; ALPHABET.len()];
-            logits[BLANK_IDX] = 0.0; // log(1)
-            logits
-        });
-        assert_eq!(CTCDecoder::decode_log_probs(timestep_log_probs, 5), "");
+    type Logits = [f32; ALPHABET.len()];
+
+    const BLANK: char = ALPHABET[BLANK_IDX];
+    const TIMESTEP: Logits = [f32::NEG_INFINITY; ALPHABET.len()];
+
+    fn symbol_idx(symbol: char) -> usize {
+        ALPHABET.iter().position(|ch| *ch == symbol).expect("char in alphabet")
+    }
+
+    fn symbol_timestep(symbol: char) -> [f32; ALPHABET.len()] {
+        let mut logits = TIMESTEP;
+        logits[symbol_idx(symbol)] = 0.0;
+        logits
     }
 
     #[test]
-    fn test_single_char() {
-        let symbol_idx = ALPHABET.iter().position(|ch| *ch == 'e').unwrap();
-        let timestep_log_probs = (0..5).map(|_| {
-            let mut logits = vec![f32::NEG_INFINITY; ALPHABET.len()];
-            logits[symbol_idx] = 0.0;
-            logits
-        });
-        assert_eq!(CTCDecoder::decode_log_probs(timestep_log_probs, 5), "e");
+    fn blank_only() {
+        let timesteps = (0..5).map(|_| BLANK).map(symbol_timestep);
+        assert_eq!(CTCDecoder::decode_log_probs(timesteps, 5), "");
     }
 
     #[test]
-    fn test_hi() {
-        let timestep_log_probs = Itertools::intersperse("hi".chars(), '_').map(|symbol| {
-            let mut logits = [f32::NEG_INFINITY; ALPHABET.len()];
-            logits[ALPHABET.iter().position(|ch| *ch == symbol).unwrap()] = 0.0;
-            logits
-        });
-        assert_eq!(CTCDecoder::decode_log_probs(timestep_log_probs, 10), "hi");
+    fn single_char() {
+        let timesteps = (0..5).map(|_| 'e').map(symbol_timestep);
+        assert_eq!(CTCDecoder::decode_log_probs(timesteps, 5), "e");
+    }
+
+    #[test]
+    fn blanks_interspersed() {
+        let timesteps = Itertools::intersperse("test".chars(), '_').map(symbol_timestep);
+        assert_eq!(CTCDecoder::decode_log_probs(timesteps, 7), "test");
+    }
+
+    #[test]
+    fn merge_repeated() {
+        assert_eq!(CTCDecoder::decode_log_probs("aaa".chars().map(symbol_timestep), 3), "a");
+        assert_eq!(CTCDecoder::decode_log_probs("aba".chars().map(symbol_timestep), 3), "aba");
+    }
+
+    #[test]
+    fn beam_width_1() {
+        let timesteps = Itertools::intersperse("test".chars(), '_').map(symbol_timestep);
+        assert_eq!(CTCDecoder::decode_log_probs(timesteps, 1), "test");
+    }
+
+    #[test]
+    fn beam_width_2() {
+        let mut timestep = TIMESTEP;
+        timestep[symbol_idx('a')] = f32::ln(0.9);
+        timestep[symbol_idx('b')] = f32::ln(0.1);
+        assert_eq!(CTCDecoder::decode_log_probs([timestep, symbol_timestep(BLANK)], 2), "a");
     }
 }

@@ -161,3 +161,22 @@ impl<B: Backend> Normalize<B> for NoNormalization {
         input
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use burn::backend::NdArray;
+    use burn::backend::ndarray::NdArrayDevice;
+
+    use crate::config::Wav2Vec2Base;
+
+    use super::*;
+
+    #[test]
+    fn base_forward_output_shape() {
+        let device = NdArrayDevice::default();
+        let encoder = FeatureEncoder::<Wav2Vec2Base<NdArray>>::new(&Weights::None, "", &device).unwrap();
+        let input = Tensor::zeros([1, 1, 400], &device);
+        let output = encoder.forward(input);
+        assert_eq!(output.dims(), [1, 512, 3]);
+    }
+}

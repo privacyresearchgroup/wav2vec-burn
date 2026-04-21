@@ -51,6 +51,8 @@ where
 mod tests {
     use super::*;
 
+    use assert_float_eq::assert_f32_near;
+
     #[test]
     fn identical() {
         assert_eq!(word_error_rate([("hello world", "hello world")]), 0.0);
@@ -58,7 +60,7 @@ mod tests {
 
     #[test]
     fn one_substitution() {
-        assert!((word_error_rate([("hello world", "hello earth")]) - 0.5).abs() < 1e-6);
+        assert_f32_near!(word_error_rate([("hello world", "hello earth")]), 0.5);
     }
 
     #[test]
@@ -68,6 +70,17 @@ mod tests {
 
     #[test]
     fn multiple_pairs() {
-        assert!((word_error_rate([("one two three", "one two three"), ("foo bar", "foo baz")]) - 0.2).abs() < 1e-6);
+        assert_f32_near!(word_error_rate([("one two three", "one two three"), ("foo bar", "foo baz")]), 0.2);
+    }
+
+    #[test]
+    fn wer_empty() {
+        assert_f32_near!(word_error_rate([("hello world", "")]), 1.0);
+        assert_f32_near!(word_error_rate([("", "extra words")]), 1.0);
+    }
+
+    #[test]
+    fn wer_insertions_only() {
+        assert_f32_near!(word_error_rate([("hello", "hello world foo bar")]), 3.0)
     }
 }

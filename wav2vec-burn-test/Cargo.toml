@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
+assert_float_eq = { workspace = true }
 burn = { workspace = true, features = ["ndarray"] }
 env_logger = { workspace = true }
 log = { workspace = true }

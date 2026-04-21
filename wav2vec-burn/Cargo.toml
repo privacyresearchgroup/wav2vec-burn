@@ -25,6 +25,8 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
+assert_float_eq = { workspace = true }
+burn = { workspace = true, features = ["ndarray"] }
 flate2 = { workspace = true }
 tar = { workspace = true }
 tempfile = { workspace = true }

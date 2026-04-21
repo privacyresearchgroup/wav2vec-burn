@@ -92,3 +92,23 @@ impl PartialOrd for LogSpaceF32 {
         Some(self.cmp(other))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use assert_float_eq::{assert_f32_near, assert_float_absolute_eq};
+
+    #[test]
+    fn log_add() {
+        let point_3 = LogSpaceF32::from_log(f32::ln(0.3));
+        let point_7 = LogSpaceF32::from_log(f32::ln(0.7));
+        assert_float_absolute_eq!((point_3 + point_7).log, f32::ln(1.0));
+    }
+
+    #[test]
+    fn log_mul() {
+        let half = LogSpaceF32::from_log(f32::ln(0.5));
+        assert_f32_near!((half * half).log, f32::ln(0.5 * 0.5));
+    }
+}
