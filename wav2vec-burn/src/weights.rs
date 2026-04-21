@@ -55,7 +55,6 @@ impl Weights {
         // or stored as `weight_g` (norm) + `weight_v` (direction).
         // If the model uses weight_norm (weight_g + weight_v), merge them first.
         // Most HuggingFace checkpoints store the merged weight, but handle both cases.
-        let mut config = config.clone();
         let in_ch_per_group = config.channels_in / config.groups;
         let kernel_size = config.kernel_size;
         let weight_shape = [config.channels_out, in_ch_per_group, kernel_size];
@@ -122,9 +121,9 @@ impl Weights {
                 Err(err) => return Err(err),
             };
 
-            config = config.with_padding(PaddingConfig1d::Explicit(kernel_size / 2));
             TensorData::new(merged, [config.channels_in, in_ch_per_group, kernel_size])
         };
+        let config = config.clone().with_padding(PaddingConfig1d::Explicit(kernel_size / 2));
         let record = Conv1dRecord {
             weight: Param::from_data(weight, device),
             bias: config
