@@ -1,5 +1,3 @@
-pub mod audio;
-
 use std::io::{Write, stdout};
 use std::path::PathBuf;
 
@@ -11,9 +9,8 @@ use clap::Parser;
 use log::LevelFilter;
 use wav2vec_burn::config::{ConstConfig, Wav2Vec2Base, Wav2Vec2Large};
 use wav2vec_burn::{CTCDecoder, Model};
-use wav2vec_burn_cli::loader;
-
-use crate::audio::TARGET_SAMPLE_RATE;
+use wav2vec_burn_cli::model::{default_cache_dir, load_model};
+use wav2vec_burn_loader::audio::{TARGET_SAMPLE_RATE, load_audio};
 
 #[derive(Parser, Debug)]
 #[command(name = "transcribe", about = "Transcribe speech to text using wav2vec2")]
@@ -42,22 +39,22 @@ fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let samples = audio::load_audio(&args.audio_file)?;
+    let samples = load_audio(&args.audio_file)?;
     #[expect(clippy::cast_precision_loss, reason = "Log can be imprecise")]
     let duration = samples.len() as f32 / TARGET_SAMPLE_RATE as f32;
     log::info!("Audio file of duration {duration:.2}s loaded: {}", args.audio_file.display(),);
 
-    let cache_dir = args.cache_dir.unwrap_or_else(loader::default_cache_dir);
+    let cache_dir = args.cache_dir.unwrap_or_else(default_cache_dir);
     log::info!("Cache dir: {}", cache_dir.display());
 
     let device = NdArrayDevice::Cpu;
     let text = match args.model.to_lowercase().as_str() {
         "base" => {
-            let model: Model<Wav2Vec2Base<NdArray<f32>>> = loader::load_model(&cache_dir, &device)?;
+            let model: Model<Wav2Vec2Base<NdArray<f32>>> = load_model(&cache_dir, &device)?;
             infer_and_decode(&samples, model, args.beam_width, &device)?
         }
         "large" => {
-            let model: Model<Wav2Vec2Large<NdArray<f32>>> = loader::load_model(&cache_dir, &device)?;
+            let model: Model<Wav2Vec2Large<NdArray<f32>>> = load_model(&cache_dir, &device)?;
             infer_and_decode(&samples, model, args.beam_width, &device)?
         }
         other => anyhow::bail!("Unknown model variant '{other}'; use 'base' or 'large'"),

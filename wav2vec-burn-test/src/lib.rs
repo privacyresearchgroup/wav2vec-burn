@@ -1,7 +1,9 @@
-pub mod evaluation;
-pub mod test_data;
+//! Common `wav2vec-burn` test code.
 
-pub use wav2vec_burn_cli::{audio, loader};
+pub mod audio;
+pub mod evaluation;
+pub mod model;
+pub mod test_data;
 
 pub type TestBackend = burn::backend::NdArray;
 pub type TestDevice = burn::backend::ndarray::NdArrayDevice;

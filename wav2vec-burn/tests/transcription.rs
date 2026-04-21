@@ -3,23 +3,17 @@ use burn::prelude::*;
 use burn::tensor::TensorData;
 use wav2vec_burn::config::Wav2Vec2Base;
 use wav2vec_burn::{CTCDecoder, Model};
-use wav2vec_burn_test::{TestBackend, TestDevice, audio, init_logger, loader};
+use wav2vec_burn_test::model::load_model;
+use wav2vec_burn_test::{TestBackend, TestDevice, init_logger};
 
 #[test]
 fn test_transcribe_silence() -> anyhow::Result<()> {
     init_logger();
-    let dir = tempfile::tempdir().context("tempdir")?;
-    let wav_path = dir.path().join("silence.wav");
-    audio::write_silent_wav(&wav_path, 0.1, 16_000)?;
 
-    let samples = audio::load_audio(&wav_path).context("loading audio")?;
-    let samples_len = samples.len();
-
-    let cache_dir = loader::default_cache_dir();
     let device = TestDevice::default();
-    let model: Model<Wav2Vec2Base<TestBackend>> = loader::load_model(&cache_dir, &device).context("loading model")?;
+    let model: Model<Wav2Vec2Base<TestBackend>> = load_model(&device).context("loading model")?;
 
-    let data = TensorData::new(samples, [1, 1, samples_len]);
+    let data = TensorData::zeros::<f32, _>([1, 1, 1_600]);
     let input = Tensor::from_data(data, &device);
     let logits = model.forward(input);
     let text = CTCDecoder::decode_logits(logits, 5).unwrap();

@@ -2,26 +2,21 @@ use std::fs;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use burn::prelude::Backend;
+use burn::prelude::*;
+use wav2vec_burn::Model;
 use wav2vec_burn::config::{ConstConfig, Wav2Vec2Base, Wav2Vec2Large};
-use wav2vec_burn::{Model, Weights};
+use wav2vec_burn_loader::model::PathConfig;
 
-pub trait PathConfig {
+pub trait UrlConfig: PathConfig {
     const MODEL_URL: &str;
-    const MODEL_NAME: &str;
-    const MODEL_FILENAME: &str;
 }
 
-impl<B: Backend> PathConfig for Wav2Vec2Base<B> {
+impl<B: Backend> UrlConfig for Wav2Vec2Base<B> {
     const MODEL_URL: &str = "https://huggingface.co/facebook/wav2vec2-base-960h/resolve/main/model.safetensors";
-    const MODEL_NAME: &str = "wav2vec2-base-960h";
-    const MODEL_FILENAME: &str = "wav2vec2-base-960h.safetensors";
 }
 
-impl<B: Backend> PathConfig for Wav2Vec2Large<B> {
+impl<B: Backend> UrlConfig for Wav2Vec2Large<B> {
     const MODEL_URL: &str = "https://huggingface.co/facebook/wav2vec2-large-960h/resolve/refs%2Fpr%2F6/model.safetensors";
-    const MODEL_NAME: &str = "wav2vec2-large-960h";
-    const MODEL_FILENAME: &str = "wav2vec2-large-960h.safetensors";
 }
 
 /// Returns the default cache directory (`$CACHE_DIR/wav2vec-burn`).
@@ -31,21 +26,14 @@ pub fn default_cache_dir() -> PathBuf {
 }
 
 /// Loads a wav2vec model downloading its safetensors from huggingface to `cache_dir` if necessary.
-pub fn load_model<C: ConstConfig + PathConfig>(
+pub fn load_model<C: ConstConfig + UrlConfig>(
     cache_dir: &Path,
     device: &<C::Backend as burn::prelude::Backend>::Device,
 ) -> anyhow::Result<Model<C>> {
     let cached_path = cache_dir.join(C::MODEL_FILENAME);
     ensure_downloaded(C::MODEL_URL, &cached_path)?;
 
-    log::info!("Parsing safetensors for {}...", C::MODEL_FILENAME);
-    let bytes = fs::read(&cached_path)?;
-    let weights = Weights::from_safetensors(bytes.into())?;
-
-    log::info!("Loading model...");
-    let model = Model::new(&weights, device)?;
-
-    Ok(model)
+    wav2vec_burn_loader::model::load_model(cache_dir, device)
 }
 
 /// Download `url` to `dir` atomically, if it does not exist.

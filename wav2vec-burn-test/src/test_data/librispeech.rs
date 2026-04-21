@@ -6,8 +6,8 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::Context as _;
-use wav2vec_burn_cli::audio;
 
+use crate::audio;
 use crate::test_data::test_data_dir;
 
 /// Name of directory which should contain Librispeech test data.

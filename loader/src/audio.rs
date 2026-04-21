@@ -1,7 +1,9 @@
+//! Load audio to a format suitable for `wav2vec 2.0` input.
+
 use std::path::Path;
 
 use anyhow::Context as _;
-use hound::{SampleFormat, WavReader, WavSpec, WavWriter};
+use hound::{SampleFormat, WavReader};
 use rubato::{Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction};
 
 pub const TARGET_SAMPLE_RATE: u32 = 16_000;
@@ -57,30 +59,6 @@ pub fn load_flac(path: &Path) -> anyhow::Result<Vec<f32>> {
     #[expect(clippy::cast_possible_truncation, reason = "Channel count should fit in u16")]
     let mono_samples = downmix(interleaved, info.channels as u16);
     resample(mono_samples, info.sample_rate, TARGET_SAMPLE_RATE)
-}
-
-/// Writes a silent mono S16 WAV file with given `sample_rate` and `duration_secs`.
-pub fn write_silent_wav(path: &Path, duration_secs: f32, sample_rate: u32) -> anyhow::Result<()> {
-    let spec = WavSpec { channels: 1, sample_rate, bits_per_sample: 16, sample_format: SampleFormat::Int };
-    #[expect(clippy::cast_sign_loss, reason = "Wont be negative")]
-    #[expect(clippy::cast_precision_loss, reason = "Sample rate should fit in f32")]
-    #[expect(clippy::cast_possible_truncation, reason = "Result should fit in u64")]
-    let samples_len = (sample_rate as f32 * duration_secs) as u64;
-    let mut writer = WavWriter::create(path, spec).expect("creating silent wav");
-    for _ in 0..samples_len {
-        writer.write_sample(0i16).context("writing samples to silent wav")?;
-    }
-    writer.finalize().context("finalizing silent wav")?;
-    Ok(())
-}
-
-/// Reads the duration of a FLAC file, in seconds.
-pub fn flac_duration_secs(path: &Path) -> anyhow::Result<f32> {
-    let reader = claxon::FlacReader::open(path).context("opening audio file")?;
-    let info = reader.streaminfo();
-    let frames = info.samples.unwrap_or(0);
-    #[expect(clippy::cast_precision_loss, reason = "Duration can be imprecise")]
-    Ok(frames as f32 / info.sample_rate as f32)
 }
 
 /// Downmixes multi-channel f32 audio with given number of `channels` to mono.

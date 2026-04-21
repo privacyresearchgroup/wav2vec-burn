@@ -9,10 +9,12 @@ publish = false
 anyhow = { workspace = true }
 assert_float_eq = { workspace = true }
 burn = { workspace = true, features = ["ndarray"] }
+claxon = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 itertools = { workspace = true }
-wav2vec-burn-cli = { path = "../cli" }
+wav2vec-burn = { path = "../wav2vec-burn" }
+wav2vec-burn-loader = { path = "../loader" }
 
 [lints]
 workspace = true

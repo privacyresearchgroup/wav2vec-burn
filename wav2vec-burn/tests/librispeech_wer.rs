@@ -5,9 +5,11 @@ use burn::prelude::*;
 use burn::tensor::TensorData;
 use wav2vec_burn::config::Wav2Vec2Base;
 use wav2vec_burn::{CTCDecoder, Model};
+use wav2vec_burn_test::audio::load_flac;
 use wav2vec_burn_test::evaluation::word_error_rate;
+use wav2vec_burn_test::model::load_model;
 use wav2vec_burn_test::test_data::librispeech::{TestData, Utterance};
-use wav2vec_burn_test::{TestBackend, TestDevice, audio, init_logger, loader};
+use wav2vec_burn_test::{TestBackend, TestDevice, init_logger};
 
 const LIBRISPEECH_SPEAKER: &str = "1089";
 const LIBRISPEECH_CHAPTER: &str = "134686";
@@ -26,13 +28,12 @@ fn test_librispeech_wer() -> anyhow::Result<()> {
         select_utterance
     });
 
-    let cache_dir = loader::default_cache_dir();
     let device = TestDevice::default();
-    let model: Model<Wav2Vec2Base<TestBackend>> = loader::load_model(&cache_dir, &device).context("loading model")?;
+    let model: Model<Wav2Vec2Base<TestBackend>> = load_model(&device).context("loading model")?;
 
     let mut pairs: Vec<(String, String)> = Vec::new();
     for (utterance_id, Utterance { path: flac_path, text: reference, .. }) in selected {
-        let samples = audio::load_audio(&flac_path).context("loading utterance")?;
+        let samples = load_flac(&flac_path).context("loading utterance")?;
         let samples_len = samples.len();
 
         let start = Instant::now();

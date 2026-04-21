@@ -1,5 +1,5 @@
 [package]
-name = "wav2vec-burn-cli"
+name = "wav2vec-burn-loader"
 version.workspace = true
 edition.workspace = true
 
@@ -8,13 +8,11 @@ publish = false
 [dependencies]
 anyhow = { workspace = true }
 burn = { workspace = true, features = ["ndarray"] }
-clap = { workspace = true }
-dirs = { workspace = true }
-env_logger = { workspace = true }
+claxon = { workspace = true }
+hound = { workspace = true }
 log = { workspace = true }
-reqwest = { workspace = true }
+rubato = { workspace = true }
 wav2vec-burn = { path = "../wav2vec-burn" }
-wav2vec-burn-loader = { path = "../loader" }
 
 [lints]
 workspace = true

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["cli", "wav2vec-burn", "wav2vec-burn-test"]
+members = ["cli", "loader", "wav2vec-burn", "wav2vec-burn-test"]
 
 [workspace.package]
 version = "0.1.0"

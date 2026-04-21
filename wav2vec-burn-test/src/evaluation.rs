@@ -1,7 +1,10 @@
+//! Evaluation of test results.
+
 use std::mem::replace;
 
 use itertools::Itertools;
 
+/// Calculate the Word Error Rate (WER) of the given `pairs` of reference and inferred transcriptions.
 pub fn word_error_rate(pairs: impl IntoIterator<Item = (impl AsRef<str>, impl AsRef<str>)>) -> f32 {
     let mut total_words = 0;
     let mut total_errors = 0;
